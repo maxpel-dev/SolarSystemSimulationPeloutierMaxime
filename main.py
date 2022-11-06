@@ -4,56 +4,49 @@ import pygame
 import math
 
 pygame.init()
-w,h = 1024, 768
+w,h = 1600, 768
 screen = pygame.display.set_mode((w,h))
+displayOrbit = True
 
+SUN_X, SUN_Y = 10, h/2
+SUN_COLOR = (235, 158, 26)
+# Echelles
+DISTANCE_SCALE = 1/1400
+SUN_SCALE = 1/20000
+PLANET_SCALE = 1/1400
+SATELLITE_SCALE = 1/5000
+PLANET_ORBIT_OFFSET = 32000
+print(PLANET_ORBIT_OFFSET)
 # Vitesse de la simulation
-SPEED_MULTIPLIERS = [0.5, 1, 2, 5, 10, 50, 100, 250]
+SPEED_MULTIPLIERS = [0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000]
 speedMultiplierIndex = 4
 FRAMERATE = 165
-# Nom et couleurs des planètes du système solaire à inclure dans la simulation
-BODIES = [ 
-    {"Sun", (255, 255, 255)},
-    {"Mercury", (255, 255, 255)}, 
-    {"Venus", (255, 255, 255)},
-    {"Earth", (255, 255, 255)},
-    {"Mars", (255, 255, 255)},
-    {"Jupiter", (255, 255, 255)},
-    {"Saturn", (255, 255, 255)},
-    {"Uranus", (255, 255, 255)},
-    {"Neptune", (255, 255, 255)}
+# Nom et couleurs des "planètes" du système solaire à inclure dans la simulation
+PLANETS = [ 
+    ("Mercury", (240, 198, 144)),
+    ("Venus", (237, 146, 26)),
+    ("Earth", (89, 149, 240)),
+    ("Mars", (237, 68, 38)),
+    ("Jupiter", (201, 123, 81)),
+    ("Saturn", (230, 158, 119)),
+    ("Uranus", (195, 231, 250)),
+    ("Neptune", (11, 67, 179))
 ]
 
-#Echelles
-DISTANCE_SCALE = 1/5
-SUN_SCALE = 1/100000
-PLANET_SCALE = 1/100
-SATELLITE_SCALE = 1/5000
-
 # Les valeurs des attributs sont ramenées aux échelles définies dans les constantes.
-class Planet:
-    name = ""
-    distanceFromSun = 0
-    radius = 0
-    orbitCount = 0
-    daysPerOrbit = 0
-    color = (255, 255, 255)
-    x = 0
-    y = 0
-
+class CelestialBody:
     def __init__(self, name, color):
         self.name = name
         self.color = color
-        data = api.GetPlanetData(name)
+        data = api.GetCelestailBodyData(self.name)
 
         # Distance du soleil : "semimajorAxis"
         # Rayon : "meanRadius"
         # Jours par orbite = "sideralOrbit"
         # Jours par rotation sur elle-même = "sideralRotation"
         self.daysPerOrbit = data["sideralOrbit"]
-        self.distanceFromSun = data["meanRadius"]*DISTANCE_SCALE
+        self.distanceFromOrbitCenter = data["semimajorAxis"]*DISTANCE_SCALE + PLANET_ORBIT_OFFSET
         self.radius = data["meanRadius"]*PLANET_SCALE
-        self.angle = 0
         self.updatePosition()
         print(str(self))
     
@@ -61,30 +54,75 @@ class Planet:
         s = ""
         s += "Nom : " + str(self.name) + "\n"
         s += "Coordonnées (x, y) : " + str(self.x) + ", " + str(self.y) + "\n"
-        s += "Orbit count : " + str(self.orbitCount) + "\n"
+        return s
+
+    def refresh(self):
+        self.draw()
+
+    def updatePosition(self, parent_x = SUN_X, parent_y = SUN_Y):
+        self.orbitCount += (SPEED_MULTIPLIERS[speedMultiplierIndex]/FRAMERATE)/self.daysPerOrbit
+        self.angle = (2*math.pi)*self.orbitCount
+        self.x = (self.distanceFromOrbitCenter*math.cos(self.angle))*DISTANCE_SCALE + parent_x
+        self.y = (self.distanceFromOrbitCenter*math.sin(self.angle))*DISTANCE_SCALE + parent_y
+    
+    def draw(self):
+        # print(str(self))
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+
+class Planet(CelestialBody):
+    def __init__(self, name, color):
+        self.angle = 0
+        self.orbitCount = 0
+        self.satellites = []
+        super().__init__(name, color)
+
+    def __str__(self):
+        s = super().__str__()
+        s += "Nombre d'orbites : " + str(self.orbitCount) + "\n"
         s += "Angle : " + str(self.angle) + "\n"
         return s
 
     def refresh(self):
         self.updatePosition()
-        self.draw()
+        if displayOrbit:
+            self.drawOrbit()
+        super().draw()
 
-    def updatePosition(self):
+    def updatePosition(self, relative_x = SUN_X, relative_y = SUN_Y):
         self.orbitCount += (SPEED_MULTIPLIERS[speedMultiplierIndex]/FRAMERATE)/self.daysPerOrbit
         self.angle = (2*math.pi)*self.orbitCount
-        self.x = (self.distanceFromSun*math.cos(self.angle))*DISTANCE_SCALE + w/2
-        self.y = (self.distanceFromSun*math.sin(self.angle))*DISTANCE_SCALE + h/2
+        self.x = (self.distanceFromOrbitCenter*math.cos(self.angle))*DISTANCE_SCALE + relative_x
+        self.y = (self.distanceFromOrbitCenter*math.sin(self.angle))*DISTANCE_SCALE + relative_y
+
+    def drawOrbit(self):
+        pygame.draw.circle(screen, (255, 255, 255), (SUN_X, SUN_Y), self.distanceFromOrbitCenter*DISTANCE_SCALE, 1)
+
+class Sun(CelestialBody):
+    def __init__(self):
+        self.name = "Sun"
+        self.color = SUN_COLOR
+        data = api.GetCelestailBodyData(self.name)
+        self.radius = data["meanRadius"]*SUN_SCALE
+        self.planets = []
+        for p in PLANETS:
+            self.planets.append(Planet(p[0], p[1]))
+        self.draw()
+
+    def refresh(self):
+        self.draw()
     
     def draw(self):
-        #print(str(self))
-        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+        pygame.draw.circle(screen, SUN_COLOR, (SUN_X, SUN_Y), self.radius)
+
+
 
 play = True
 clock = pygame.time.Clock()
 
 
 screen.fill((0,0,0))
-p = Planet("Mercury", (255, 255, 255))
+#p = Planet(PLANETS[0][0], PLANETS[0][1])
+sun = Sun()
 
 while play:
     for event in pygame.event.get():
@@ -104,8 +142,15 @@ while play:
             if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                 if(speedMultiplierIndex > 0): speedMultiplierIndex -= 1
                 print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
+            if event.key == pygame.K_o:
+                displayOrbit = not displayOrbit
+
 
     screen.fill((0,0,0))
-    p.refresh()
+    # Rafraîchissement de l'affichage du système solaire
+    for planet in sun.planets:
+        planet.refresh()
+    sun.refresh()
+
     clock.tick(FRAMERATE)
     pygame.display.flip()
