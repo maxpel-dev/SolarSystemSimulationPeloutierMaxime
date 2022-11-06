@@ -7,10 +7,10 @@ pygame.init()
 w,h = 1024, 768
 screen = pygame.display.set_mode((w,h))
 
-# Vitesse de la simulation en jours/seconde
-SPEED_MULTIPLIERS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 100, 500]
-speedMultiplierIndex = 0
-FRAMERATE = 60
+# Vitesse de la simulation
+SPEED_MULTIPLIERS = [0.5, 1, 2, 5, 10, 50, 100, 250]
+speedMultiplierIndex = 4
+FRAMERATE = 165
 # Nom et couleurs des planètes du système solaire à inclure dans la simulation
 BODIES = [ 
     {"Sun", (255, 255, 255)},
@@ -35,7 +35,7 @@ class Planet:
     name = ""
     distanceFromSun = 0
     radius = 0
-    orbitPercentage = 0
+    orbitCount = 0
     daysPerOrbit = 0
     color = (255, 255, 255)
     x = 0
@@ -59,10 +59,9 @@ class Planet:
     
     def __str__(self):
         s = ""
-        s += "Name : " + str(self.name) + "\n"
-        s += "Coordinates : " + str(self.x) + " " + str(self.y) + "\n"
-        s += "Orbit % : " + str(self.orbitPercentage) + "\n"
-        #s += "Radius : " + str(self.radius) + "\n"
+        s += "Nom : " + str(self.name) + "\n"
+        s += "Coordonnées (x, y) : " + str(self.x) + ", " + str(self.y) + "\n"
+        s += "Orbit count : " + str(self.orbitCount) + "\n"
         s += "Angle : " + str(self.angle) + "\n"
         return s
 
@@ -71,8 +70,8 @@ class Planet:
         self.draw()
 
     def updatePosition(self):
-        self.orbitPercentage += SPEED_MULTIPLIERS[speedMultiplierIndex]/self.daysPerOrbit
-        self.angle = (2*math.pi)*self.orbitPercentage
+        self.orbitCount += (SPEED_MULTIPLIERS[speedMultiplierIndex]/FRAMERATE)/self.daysPerOrbit
+        self.angle = (2*math.pi)*self.orbitCount
         self.x = (self.distanceFromSun*math.cos(self.angle))*DISTANCE_SCALE + w/2
         self.y = (self.distanceFromSun*math.sin(self.angle))*DISTANCE_SCALE + h/2
     
@@ -100,9 +99,11 @@ while play:
                 play = False
             #Réglage de vitesse
             if event.key == pygame.K_UP or event.key == pygame.K_z:
-                pass
+                if(speedMultiplierIndex < len(SPEED_MULTIPLIERS)-1): speedMultiplierIndex += 1
+                print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
             if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                pass
+                if(speedMultiplierIndex > 0): speedMultiplierIndex -= 1
+                print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
 
     screen.fill((0,0,0))
     p.refresh()
