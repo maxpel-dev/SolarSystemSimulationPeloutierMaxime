@@ -6,7 +6,7 @@ import math
 pygame.init()
 w,h = 1600, 768
 screen = pygame.display.set_mode((w,h))
-displayOrbit = True
+displayPlanetOrbits = True
 
 SUN_X, SUN_Y = 10, h/2
 SUN_COLOR = (235, 158, 26)
@@ -84,7 +84,7 @@ class Planet(CelestialBody):
 
     def refresh(self):
         self.updatePosition()
-        if displayOrbit:
+        if displayPlanetOrbits:
             self.drawOrbit()
         super().draw()
 
@@ -142,8 +142,8 @@ while play:
             if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                 if(speedMultiplierIndex > 0): speedMultiplierIndex -= 1
                 print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
-            if event.key == pygame.K_o:
-                displayOrbit = not displayOrbit
+            if event.key == pygame.K_p:
+                displayPlanetOrbits = not displayPlanetOrbits
 
 
     screen.fill((0,0,0))

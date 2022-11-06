@@ -12,4 +12,5 @@ Pour clarifier l'affichage, des échelles arbitraires de distances et de proport
 # Contrôles
 <li> <b>Flèche du haut (↑) ou Z</b> pour augmenter la vitesse de la simulation.
 <li> <b>Flèche du bas (↓) ou S</b> pour diminuer la vitesse de la simulation.
+<li> <b>P</b> pour afficher/cacher les orbites des planètes.
 
