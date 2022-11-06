@@ -1,27 +1,25 @@
 import api
-import sys
 import pygame
 import math
 
 pygame.init()
-w,h = 1600, 768
+w,h = 1520, 768
 screen = pygame.display.set_mode((w,h))
 displayPlanetOrbits = True
 
-SUN_X, SUN_Y = 10, h/2
+SUN_X, SUN_Y = 230, h/2
 SUN_COLOR = (235, 158, 26)
-# Echelles
-DISTANCE_SCALE = 1/1400
-SUN_SCALE = 1/20000
-PLANET_SCALE = 1/1400
+# Echelles - Vous pouvez vous amuser à jouer avec, je pense avoir trouvé un bon équilibre entre précision et qualité d'affichage
+DISTANCE_SCALE = 1/1600
+SUN_SCALE = 1/5000
+PLANET_SCALE = SUN_SCALE*6
 SATELLITE_SCALE = 1/5000
-PLANET_ORBIT_OFFSET = 32000
-print(PLANET_ORBIT_OFFSET)
+PLANET_ORBIT_OFFSET = 42/SUN_SCALE # Distance fixe ajoutée à la distance entre le soleil et chaque planète pour éviter que les planètes proches du soleil se fassent "manger"
 # Vitesse de la simulation
 SPEED_MULTIPLIERS = [0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000]
 speedMultiplierIndex = 4
 FRAMERATE = 165
-# Nom et couleurs des "planètes" du système solaire à inclure dans la simulation
+# Nom et couleurs des planètes du système solaire à inclure dans la simulation
 PLANETS = [ 
     ("Mercury", (240, 198, 144)),
     ("Venus", (237, 146, 26)),
@@ -31,6 +29,7 @@ PLANETS = [
     ("Saturn", (230, 158, 119)),
     ("Uranus", (195, 231, 250)),
     ("Neptune", (11, 67, 179))
+    # Désolé Pluton, t'es pas tout à fait une planète et puis ça fait trop loin :(
 ]
 
 # Les valeurs des attributs sont ramenées aux échelles définies dans les constantes.
@@ -43,7 +42,7 @@ class CelestialBody:
         # Distance du soleil : "semimajorAxis"
         # Rayon : "meanRadius"
         # Jours par orbite = "sideralOrbit"
-        # Jours par rotation sur elle-même = "sideralRotation"
+        # Jours par rotation sur soi-même = "sideralRotation" (inutilisé actuellement)
         self.daysPerOrbit = data["sideralOrbit"]
         self.distanceFromOrbitCenter = data["semimajorAxis"]*DISTANCE_SCALE + PLANET_ORBIT_OFFSET
         self.radius = data["meanRadius"]*PLANET_SCALE
@@ -73,8 +72,9 @@ class Planet(CelestialBody):
     def __init__(self, name, color):
         self.angle = 0
         self.orbitCount = 0
-        self.satellites = []
         super().__init__(name, color)
+        self.satellites = []
+        # TODO ajouter les satellites à chaque planète
 
     def __str__(self):
         s = super().__str__()
@@ -108,6 +108,7 @@ class Sun(CelestialBody):
             self.planets.append(Planet(p[0], p[1]))
         self.draw()
 
+    # La simulation étant héliocentrique, pas besoin de recalculer la position du soleil
     def refresh(self):
         self.draw()
     
@@ -118,10 +119,8 @@ class Sun(CelestialBody):
 
 play = True
 clock = pygame.time.Clock()
-
-
 screen.fill((0,0,0))
-#p = Planet(PLANETS[0][0], PLANETS[0][1])
+
 sun = Sun()
 
 while play:
@@ -142,6 +141,7 @@ while play:
             if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                 if(speedMultiplierIndex > 0): speedMultiplierIndex -= 1
                 print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
+            # Affichage des orbites
             if event.key == pygame.K_p:
                 displayPlanetOrbits = not displayPlanetOrbits
 

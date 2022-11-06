@@ -1,13 +1,5 @@
 import json
 import requests
-import urllib3
-
-# Distance du soleil : "semimajorAxis"
-# Rayon : "meanRadius"
-# Jours par orbite = "sideralOrbit"
-# Jours par rotation sur elle-même = "sideralRotation"
-
-API_KEY = "etrZR7MXfRfCcjthCdlFnmeRAZBXfzzbrckyE8ad"
 
 def GetCelestailBodyData(name):
     api_url = 'https://api.le-systeme-solaire.net/rest.php/bodies/{}'.format(name)
