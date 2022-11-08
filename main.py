@@ -5,21 +5,30 @@ import math
 pygame.init()
 w,h = 1520, 768
 screen = pygame.display.set_mode((w,h))
-displayPlanetOrbits = True
-ENABLE_SATELLITES = False
+displayPlanetOrbits = True # On/Off avec la touche 'E'
+displaySatelliteOrbits = False # On/off avec la touche 'R'
 
 BASE_URL = "https://api.le-systeme-solaire.net/rest.php/bodies/"
 SUN_X, SUN_Y = 230, h/2
 SUN_COLOR = (235, 158, 26)
+
+# 
+ENABLE_SATELLITES = True
+# Vous pouvez augmenter la valeur de cette constante pour afficher plus de satellites au prix d'un chargement initial plus long.
+# Au-delà des 5 premières, les satellites éloignés des génates gazeuses ont des orbites très grandes et ne rendent pas très bien avec les échelles choisies.
+SATELLITE_LIMIT_PER_PLANET = 5
 # Echelles - Vous pouvez vous amuser à jouer avec, je pense avoir trouvé un bon équilibre entre précision et lisibilité d'affichage
-DISTANCE_SCALE = 1/1600
+# C'est loin d'être réaliste, mais l'objectif c'est que ça aie l'air cool.
 SUN_SCALE = 1/5300
-PLANET_SCALE = SUN_SCALE*6
-SATELLITE_SCALE = 1/5000
-PLANET_ORBIT_OFFSET = 42/SUN_SCALE # Distance fixe ajoutée à la distance entre le soleil et chaque planète pour éviter que les planètes proches du soleil se fassent "manger"
-# Vitesse de la simulation
-SPEED_MULTIPLIERS = [0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000]
-speedMultiplierIndex = 4
+PLANET_SCALE = 1/700
+SATELLITE_SCALE = 1/400
+PLANET_DISTANCE_SCALE = 1/1600
+SATELLITE_DISTANCE_SCALE = 120/SATELLITE_LIMIT_PER_PLANET
+# Cette constante est utilisé pour s'assurer que les satellites soient suffisamment espacés dans l'affichage.
+ADDED_SPACE_BETWEEN_SATELLITES = (1/SATELLITE_SCALE)*10
+# Vitesse de la simulation - Régler avec ↑ (ou 'Z') et ↓ (ou 'S')
+SPEED_MULTIPLIERS = [0.1, 0.2, 0.3, 0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000]
+speedMultiplierIndex = 6
 FRAMERATE = 165
 # ID (peut être différent du NOM, mais pas le cas ici) et couleurs des planètes du système solaire à inclure dans la simulation
 PLANETS = [ 
@@ -72,12 +81,12 @@ class OrbitingBody(CelestialBody):
         self.orbitCount = 0
         self.orbitReference = orbitRef
         super().__init__(id, color)
-        # Distance du soleil : "semimajorAxis"
+        # Distance du centre de l'orbite : "semimajorAxis"
         # Rayon : "meanRadius"
         # Jours par orbite = "sideralOrbit"
         # Jours par rotation sur soi-même = "sideralRotation" (inutilisé actuellement)
         self.daysPerOrbit = self.apiData["sideralOrbit"]
-        self.distanceFromOrbitCenter = self.apiData["semimajorAxis"]*DISTANCE_SCALE
+        self.distanceFromOrbitCenter = (self.apiData["semimajorAxis"] + self.orbitReference.radius)*PLANET_DISTANCE_SCALE
     
     def __str__(self):
         s = super().__str__()
@@ -87,7 +96,9 @@ class OrbitingBody(CelestialBody):
 
     def refresh(self):
         self.updatePosition()
-        if displayPlanetOrbits:
+        if (issubclass(type(self), Planet) and displayPlanetOrbits):
+            self.drawOrbit()
+        if (issubclass(type(self), Satellite) and displaySatelliteOrbits):
             self.drawOrbit()
         super().draw()
 
@@ -95,23 +106,25 @@ class OrbitingBody(CelestialBody):
         if(self.daysPerOrbit != 0):
             self.orbitCount += (SPEED_MULTIPLIERS[speedMultiplierIndex]/FRAMERATE)/self.daysPerOrbit
             self.angle = (2*math.pi)*self.orbitCount
-            self.x = (self.distanceFromOrbitCenter*math.cos(self.angle))*DISTANCE_SCALE + self.orbitReference.x
-            self.y = (self.distanceFromOrbitCenter*math.sin(self.angle))*DISTANCE_SCALE + self.orbitReference.y
+            self.x = (self.distanceFromOrbitCenter*math.cos(self.angle))*PLANET_DISTANCE_SCALE + self.orbitReference.x
+            self.y = (self.distanceFromOrbitCenter*math.sin(self.angle))*PLANET_DISTANCE_SCALE + self.orbitReference.y
 
     def drawOrbit(self):
-        pygame.draw.circle(screen, (255, 255, 255), (self.orbitReference.x, self.orbitReference.y), self.distanceFromOrbitCenter*DISTANCE_SCALE, 1)
+        pygame.draw.circle(screen, (255, 255, 255), (self.orbitReference.x, self.orbitReference.y), self.distanceFromOrbitCenter*PLANET_DISTANCE_SCALE, 1)
 
 class Planet(OrbitingBody):
     def __init__(self, id, color, orbitRef):
         super().__init__(id, color, orbitRef)
         self.radius *= PLANET_SCALE
-        self.distanceFromOrbitCenter += PLANET_ORBIT_OFFSET
+        self.distanceFromOrbitCenter += self.orbitReference.radius/PLANET_DISTANCE_SCALE
         self.refresh()
         # Récupération des satellites
         satelliteInfo = self.apiData["moons"]
         self.satellites = []
         if (satelliteInfo is not None and ENABLE_SATELLITES == True): # Une planète peut ne pas avoir de satellite, comme par exemple Mercure
-            for s in satelliteInfo:
+            for i, s in enumerate(satelliteInfo):
+                if(i >= SATELLITE_LIMIT_PER_PLANET):
+                    break
                 satId = s["rel"].rsplit('/', 1)[-1] # Récupère le dernier mot de l'url pour avoir l'ID du satellite (voir explication dans api.py)
                 self.satellites.append(Satellite(satId, SATELLITE_COLOR, self)) 
 
@@ -119,6 +132,12 @@ class Satellite(OrbitingBody):
     def __init__(self, id, color, orbitRef):
         super().__init__(id, color, orbitRef)
         self.radius *= SATELLITE_SCALE
+        if (self.radius <= 1):
+            self.radius = 1
+        self.distanceFromOrbitCenter *= SATELLITE_DISTANCE_SCALE
+        self.distanceFromOrbitCenter += self.orbitReference.radius/PLANET_DISTANCE_SCALE
+        self.distanceFromOrbitCenter += (len(self.orbitReference.satellites)+1)*ADDED_SPACE_BETWEEN_SATELLITES
+        #print("Distance du centre de l'orbite de " + self.id + " : " +  str(self.distanceFromOrbitCenter))
 
 class Sun(CelestialBody):
     """
@@ -135,8 +154,8 @@ class Sun(CelestialBody):
 
 play = True
 clock = pygame.time.Clock()
-screen.fill((0,0,0))
 
+screen.fill((0,0,0))
 sun = Sun()
 
 while play:
@@ -158,14 +177,18 @@ while play:
                 if(speedMultiplierIndex > 0): speedMultiplierIndex -= 1
                 print("Vitesse x" + str(SPEED_MULTIPLIERS[speedMultiplierIndex]))
             # Affichage des orbites
-            if event.key == pygame.K_p:
+            if event.key == pygame.K_e:
                 displayPlanetOrbits = not displayPlanetOrbits
+            if event.key == pygame.K_r:
+                displaySatelliteOrbits = not displaySatelliteOrbits
 
 
     screen.fill((0,0,0))
     # Rafraîchissement de l'affichage du système solaire
     for planet in sun.planets:
         planet.refresh()
+        for satellite in planet.satellites:
+            satellite.refresh()
     sun.draw()
 
     clock.tick(FRAMERATE)
