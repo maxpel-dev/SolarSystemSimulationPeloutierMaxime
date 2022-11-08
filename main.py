@@ -49,7 +49,6 @@ class CelestialBody:
         self.apiData = api.GetCelestialBodyDataFromId(self.id)
         self.radius = self.apiData["meanRadius"] # Les échelles sont appliquées dans les constructeurs des classes inférieures
         #print(str(self))
-        self.draw()
     
     def __str__(self):
         s = ""
@@ -79,7 +78,6 @@ class OrbitingBody(CelestialBody):
         # Jours par rotation sur soi-même = "sideralRotation" (inutilisé actuellement)
         self.daysPerOrbit = self.apiData["sideralOrbit"]
         self.distanceFromOrbitCenter = self.apiData["semimajorAxis"]*DISTANCE_SCALE
-        self.refresh()
     
     def __str__(self):
         s = super().__str__()
@@ -91,7 +89,7 @@ class OrbitingBody(CelestialBody):
         self.updatePosition()
         if displayPlanetOrbits:
             self.drawOrbit()
-        self.draw()
+        super().draw()
 
     def updatePosition(self):
         if(self.daysPerOrbit != 0):
@@ -108,6 +106,7 @@ class Planet(OrbitingBody):
         super().__init__(id, color, orbitRef)
         self.radius *= PLANET_SCALE
         self.distanceFromOrbitCenter += PLANET_ORBIT_OFFSET
+        self.refresh()
         # Récupération des satellites
         satelliteInfo = self.apiData["moons"]
         self.satellites = []
@@ -115,7 +114,6 @@ class Planet(OrbitingBody):
             for s in satelliteInfo:
                 satId = s["rel"].rsplit('/', 1)[-1] # Récupère le dernier mot de l'url pour avoir l'ID du satellite (voir explication dans api.py)
                 self.satellites.append(Satellite(satId, SATELLITE_COLOR, self)) 
-        self.radius *= PLANET_SCALE
 
 class Satellite(OrbitingBody):
     def __init__(self, id, color, orbitRef):
