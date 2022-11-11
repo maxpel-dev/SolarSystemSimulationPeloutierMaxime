@@ -1,4 +1,5 @@
 # Simulation du système solaire en Python
+![image](https://user-images.githubusercontent.com/58134986/201386321-6c6f5da7-9d76-4c40-b1bd-d48b422f6d23.png)
 <p>
 Projet réalisé par <b>Maxime PELOUTIER</b> dans le cadre du cours d'Algorithmie en LP DIM.
 </p>
@@ -15,7 +16,7 @@ De nombreux paramètres sont ajustables dans `main.py`. Des commentaires expliqu
 Je conseille d'abord de tester les différentes valeurs de VIEW (1, 2 et 3) pour les vues préconçues. Ensuite, libre à vous de jouer avec les différents paramètres (variables en MAJUSCULES).
 
 # Lancement
-Une fois les paramètres souhaités choisis, lancez simplement `main.py`.
+Une fois les paramètres souhaités choisis, lancez simplement `main.py`. Quitter et relancer pour appliquer les changements de paramètres.
 
 # Contrôles
 <li> <b>Flèche du haut (↑) ou Z</b> pour augmenter la vitesse de la simulation.
