@@ -3,33 +3,50 @@ import pygame
 import math
 
 pygame.init()
-# Vous pouvez ajuster la résolution selon la taille de votre écran
+# Vous pouvez ajuster la résolution selon la taille de votre écran (Adapté à un écran 15 pouces par défaut)
 w,h = 1520, 768
+FRAMERATE = 165 # Fréquence (en Hz) de rafraîchissement de l'affichage, n'affecte pas la vitesse de la simulation
 screen = pygame.display.set_mode((w,h))
+
+# Vitesse de la simulation - Régler avec ↑ (ou 'Z') et ↓ (ou 'S')
+SPEED_MULTIPLIERS = [0.1, 0.2, 0.3, 0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000, 10000]
+speedMultiplierIndex = 6 # Indice de la vitesse initiale
 displayPlanetOrbits = True # On/Off avec la touche 'E'
 displaySatelliteOrbits = False # On/off avec la touche 'R'
-
-BASE_URL = "https://api.le-systeme-solaire.net/rest.php/bodies/"
-SUN_X, SUN_Y = 230, h/2
-SUN_COLOR = (235, 158, 26)
-
+# Vue 1 (par défaut) : Proportion réduite du soleil pour voir l'orbite complète des planètes qui en sont proches
+# Vue 2 : Même échelle pour le soleil et les planètes
+# Vue 3 : Soleil centré à échelle grandement réduite, seules les planètes proches de celui-ci seront visibles
+VIEW = 1 # Changez cette valeur pour choisir le numéro de la vue
 # Vous pouvez augmenter la valeur de cette constante pour afficher plus de satellites au prix d'un chargement initial plus long.
 # Vous pouvez également la diminuer jusqu'à 0. 
 # Au-delà des 5 premiers, les satellites éloignés des génates gazeuses ont des orbites très grandes et ne rendent pas très bien avec les échelles choisies.
 MAX_SATELLITES_PER_PLANET = 5
-# Echelles - Vous pouvez vous amuser à jouer avec, je pense avoir trouvé un bon équilibre entre précision et lisibilité d'affichage
+# Echelles - Vous pouvez vous amuser à jouer avec, je pense avoir trouvé un bon équilibre entre précision et lisibilité d'affichage.
 # C'est loin d'être réaliste, mais l'objectif c'est que ça aie l'air cool.
-SUN_SCALE = 1/5300
+# Selon le numéro de vue choisie, certaines de ces valeurs peuvent être surchargées.
 PLANET_SCALE = 1/1000
 SATELLITE_SCALE = 1/500
 PLANET_DISTANCE_SCALE = 1/1600
 SATELLITE_DISTANCE_SCALE = 200/MAX_SATELLITES_PER_PLANET
-# Cette constante est utilisé pour s'assurer que les satellites soient suffisamment espacés dans l'affichage.
+# Cette constante est utilisée pour s'assurer que les satellites soient suffisamment espacés dans l'affichage.
 ADDED_SPACE_BETWEEN_SATELLITES = (1/SATELLITE_SCALE)*4
-# Vitesse de la simulation - Régler avec ↑ (ou 'Z') et ↓ (ou 'S')
-SPEED_MULTIPLIERS = [0.1, 0.2, 0.3, 0.5, 1, 2, 5, 10, 50, 100, 250, 500, 1000, 5000]
-speedMultiplierIndex = 6
-FRAMERATE = 165
+
+match VIEW:
+    case 1:
+        SUN_X, SUN_Y = 220, h/2
+        SUN_SCALE = 1/5500
+    case 2:
+        SUN_X, SUN_Y = -450, h/2
+        SUN_SCALE = 1/1000
+    case 3:
+        SUN_X, SUN_Y = w/2, h/2
+        SUN_SCALE = 1/7000
+        PLANET_SCALE = 1/400
+        SATELLITE_SCALE = PLANET_SCALE
+        PLANET_DISTANCE_SCALE = 1/800
+    case other:
+        SUN_X, SUN_Y = 220, h/2
+        SUN_SCALE = 1/5500
 # ID (peut être différent du NOM, mais pas le cas ici) et couleurs des planètes du système solaire à inclure dans la simulation
 PLANETS = [ 
     ("Mercury", (240, 198, 144)),
@@ -42,6 +59,7 @@ PLANETS = [
     ("Neptune", (11, 67, 179))
     # Désolé Pluton, t'es pas tout à fait une planète et puis ça fait trop loin :(
 ]
+SUN_COLOR = (235, 158, 26)
 SATELLITE_COLOR = (204, 204, 204)
 
 class CelestialBody:
